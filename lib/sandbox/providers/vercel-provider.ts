@@ -1,6 +1,7 @@
 import { Sandbox } from '@vercel/sandbox';
 import { SandboxProvider, SandboxInfo, CommandResult } from '../types';
 // SandboxProviderConfig available through parent class
+import { getConfiguredEnvValue } from '@/lib/env';
 
 export class VercelProvider extends SandboxProvider {
   private existingFiles: Set<string> = new Set();
@@ -30,12 +31,19 @@ export class VercelProvider extends SandboxProvider {
       };
 
       // Add authentication based on environment variables
-      if (process.env.VERCEL_TOKEN && process.env.VERCEL_TEAM_ID && process.env.VERCEL_PROJECT_ID) {
-        sandboxConfig.teamId = process.env.VERCEL_TEAM_ID;
-        sandboxConfig.projectId = process.env.VERCEL_PROJECT_ID;
-        sandboxConfig.token = process.env.VERCEL_TOKEN;
-      } else if (process.env.VERCEL_OIDC_TOKEN) {
-        sandboxConfig.oidcToken = process.env.VERCEL_OIDC_TOKEN;
+      const vercelToken = getConfiguredEnvValue('VERCEL_TOKEN');
+      const vercelTeamId = getConfiguredEnvValue('VERCEL_TEAM_ID');
+      const vercelProjectId = getConfiguredEnvValue('VERCEL_PROJECT_ID');
+      const vercelOidcToken = getConfiguredEnvValue('VERCEL_OIDC_TOKEN');
+
+      if (vercelToken && vercelTeamId && vercelProjectId) {
+        sandboxConfig.teamId = vercelTeamId;
+        sandboxConfig.projectId = vercelProjectId;
+        sandboxConfig.token = vercelToken;
+      } else if (!vercelOidcToken) {
+        throw new Error(
+          'Vercel sandbox authentication is not configured. Set VERCEL_OIDC_TOKEN or VERCEL_TOKEN with VERCEL_TEAM_ID and VERCEL_PROJECT_ID.'
+        );
       }
 
       this.sandbox = await Sandbox.create(sandboxConfig);

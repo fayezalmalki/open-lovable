@@ -2768,7 +2768,14 @@ Tip: I automatically detect and install npm packages from your code imports (lik
           });
           
           if (!scrapeResponse.ok) {
-            throw new Error('Failed to scrape website');
+            let scrapeError = 'Failed to scrape website';
+            try {
+              const errorData = await scrapeResponse.json();
+              scrapeError = errorData.error || errorData.message || scrapeError;
+            } catch {
+              // Fall back to the generic error if the response body is not JSON.
+            }
+            throw new Error(scrapeError);
           }
           
           scrapeData = await scrapeResponse.json() as ScrapeData;
